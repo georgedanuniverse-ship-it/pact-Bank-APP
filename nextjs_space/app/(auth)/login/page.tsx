@@ -5,10 +5,11 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Building2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [accountType, setAccountType] = useState<'personal' | 'corporate'>('personal');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,10 +63,12 @@ export default function LoginPage() {
           </div>
           <div>
             <h2 className="text-4xl font-heading font-bold mb-4">
-              Africa's Global Rise.
+              Africa&apos;s Global Rise.
             </h2>
             <p className="text-lg text-gray-200 max-w-md">
-              Connecting African entrepreneurs with global capital. Secure, transparent banking that bridges continents.
+              {accountType === 'personal'
+                ? 'Connecting African entrepreneurs with global capital. Secure, transparent banking that bridges continents.'
+                : 'Empowering African businesses with world-class corporate banking. Multi-currency accounts, trade finance, and seamless cross-border transactions.'}
             </p>
           </div>
         </div>
@@ -74,11 +77,43 @@ export default function LoginPage() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-cream">
         <div className="w-full max-w-md">
+          {/* Account Type Selector */}
           <div className="mb-8">
+            <div className="flex bg-white rounded-xl border border-gray-200 p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => { setAccountType('personal'); setError(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                  accountType === 'personal'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-sage hover:text-primary'
+                }`}
+              >
+                <User size={18} />
+                Personal
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAccountType('corporate'); setError(''); }}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                  accountType === 'corporate'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-sage hover:text-primary'
+                }`}
+              >
+                <Building2 size={18} />
+                Corporate
+              </button>
+            </div>
+
             <h2 className="text-3xl font-heading font-bold text-primary mb-2">
-              Welcome Back
+              {accountType === 'personal' ? 'Welcome Back' : 'Corporate Login'}
             </h2>
-            <p className="text-sage">Sign in to access your account</p>
+            <p className="text-sage">
+              {accountType === 'personal'
+                ? 'Sign in to your personal account'
+                : 'Access your corporate banking dashboard'}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -90,7 +125,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                {accountType === 'personal' ? 'Email Address' : 'Business Email'}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
@@ -100,7 +135,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="you@example.com"
+                  placeholder={accountType === 'personal' ? 'you@example.com' : 'admin@company.com'}
                   required
                 />
               </div>
@@ -149,49 +184,41 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in...' : (accountType === 'personal' ? 'Sign In' : 'Sign In to Corporate')}
             </button>
 
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-cream text-sage">Or continue with</span>
-              </div>
-            </div>
+            {accountType === 'personal' && (
+              <>
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-cream text-sage">Or continue with</span>
+                  </div>
+                </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Sign in with Google
-            </button>
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  Sign in with Google
+                </button>
+              </>
+            )}
           </form>
 
           <p className="mt-8 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-primary font-medium hover:text-primary-dark">
-              Sign up
+            Don&apos;t have an account?{' '}
+            <Link href={accountType === 'corporate' ? '/signup?type=corporate' : '/signup'} className="text-primary font-medium hover:text-primary-dark">
+              {accountType === 'corporate' ? 'Open Corporate Account' : 'Sign up'}
             </Link>
           </p>
         </div>

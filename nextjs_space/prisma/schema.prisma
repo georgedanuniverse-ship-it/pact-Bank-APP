@@ -50,6 +50,17 @@ model User {
   lastName      String?
   phone         String?
   role          String    @default("user")
+  accountType   String    @default("personal") // personal or corporate
+  // Corporate fields
+  businessName        String?
+  businessPhone       String?
+  businessEmail       String?
+  businessAddress     String?
+  businessWebsite     String?
+  taxId               String?
+  registrationNumber  String?
+  country             String?
+  industry            String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

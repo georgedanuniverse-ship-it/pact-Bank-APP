@@ -1,14 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, Building2, Globe, FileText, MapPin, Briefcase } from 'lucide-react';
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type');
+  const [accountType, setAccountType] = useState<'personal' | 'corporate'>(
+    typeParam === 'corporate' ? 'corporate' : 'personal'
+  );
+  const [step, setStep] = useState(1);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -16,12 +23,26 @@ export default function SignupPage() {
     phone: '',
     password: '',
     confirmPassword: '',
+    // Corporate fields
+    businessName: '',
+    businessPhone: '',
+    businessEmail: '',
+    businessAddress: '',
+    businessWebsite: '',
+    taxId: '',
+    registrationNumber: '',
+    country: '',
+    industry: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (typeParam === 'corporate') setAccountType('corporate');
+  }, [typeParam]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -43,16 +64,31 @@ export default function SignupPage() {
     }
 
     try {
+      const payload: any = {
+        email: accountType === 'corporate' ? formData.businessEmail : formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: accountType === 'corporate' ? formData.businessPhone : formData.phone,
+        accountType,
+      };
+
+      if (accountType === 'corporate') {
+        payload.businessName = formData.businessName;
+        payload.businessPhone = formData.businessPhone;
+        payload.businessEmail = formData.businessEmail;
+        payload.businessAddress = formData.businessAddress;
+        payload.businessWebsite = formData.businessWebsite;
+        payload.taxId = formData.taxId;
+        payload.registrationNumber = formData.registrationNumber;
+        payload.country = formData.country;
+        payload.industry = formData.industry;
+      }
+
       const response = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          phone: formData.phone,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -63,10 +99,10 @@ export default function SignupPage() {
         return;
       }
 
-      // Auto sign in after successful signup
+      const loginEmail = accountType === 'corporate' ? formData.businessEmail : formData.email;
       const result = await signIn('credentials', {
         redirect: false,
-        email: formData.email,
+        email: loginEmail,
         password: formData.password,
       });
 
@@ -84,6 +120,13 @@ export default function SignupPage() {
 
   const handleGoogleSignIn = async () => {
     await signIn('google', { redirect: true, callbackUrl: '/dashboard' });
+  };
+
+  const canProceedToStep2 = () => {
+    if (accountType === 'corporate') {
+      return formData.businessName && formData.businessEmail && formData.businessPhone && formData.industry;
+    }
+    return true;
   };
 
   return (
@@ -105,10 +148,14 @@ export default function SignupPage() {
           </div>
           <div>
             <h2 className="text-4xl font-heading font-bold mb-4">
-              Join Africa's Global Rise
+              {accountType === 'personal'
+                ? "Join Africa's Global Rise"
+                : 'Corporate Banking Excellence'}
             </h2>
             <p className="text-lg text-gray-200 max-w-md">
-              Open your account today and connect with global opportunities. Transparent fees, fast transfers, and expert support.
+              {accountType === 'personal'
+                ? 'Open your account today and connect with global opportunities. Transparent fees, fast transfers, and expert support.'
+                : 'Multi-currency accounts, trade finance, payroll management, and dedicated relationship managers for your business growth.'}
             </p>
           </div>
         </div>
@@ -117,11 +164,51 @@ export default function SignupPage() {
       {/* Right Side - Signup Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-cream overflow-y-auto">
         <div className="w-full max-w-md py-8">
-          <div className="mb-8">
+          {/* Account Type Selector */}
+          <div className="flex bg-white rounded-xl border border-gray-200 p-1 mb-6">
+            <button
+              type="button"
+              onClick={() => { setAccountType('personal'); setStep(1); setError(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                accountType === 'personal'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-sage hover:text-primary'
+              }`}
+            >
+              <User size={18} />
+              Personal
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAccountType('corporate'); setStep(1); setError(''); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                accountType === 'corporate'
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-sage hover:text-primary'
+              }`}
+            >
+              <Building2 size={18} />
+              Corporate
+            </button>
+          </div>
+
+          <div className="mb-6">
             <h2 className="text-3xl font-heading font-bold text-primary mb-2">
-              Create Account
+              {accountType === 'personal' ? 'Create Account' : 'Open Corporate Account'}
             </h2>
-            <p className="text-sage">Start your journey with Pact Bank</p>
+            <p className="text-sage">
+              {accountType === 'personal'
+                ? 'Start your personal banking journey'
+                : step === 1
+                  ? 'Step 1: Business Information'
+                  : 'Step 2: Account Credentials'}
+            </p>
+            {accountType === 'corporate' && (
+              <div className="flex gap-2 mt-3">
+                <div className={`h-1.5 flex-1 rounded-full ${step >= 1 ? 'bg-accent' : 'bg-gray-200'}`}></div>
+                <div className={`h-1.5 flex-1 rounded-full ${step >= 2 ? 'bg-accent' : 'bg-gray-200'}`}></div>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -131,170 +218,247 @@ export default function SignupPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
-                  <input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="John"
-                    required
-                  />
+            {/* ====== PERSONAL ACCOUNT FORM ====== */}
+            {accountType === 'personal' && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="John" required />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Doe" required />
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
-                  <input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Doe"
-                    required
-                  />
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="email" name="email" type="email" value={formData.email} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="you@example.com" required />
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="+234-XXX-XXX-XXXX"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sage hover:text-primary"
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="+234-XXX-XXX-XXXX" />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange}
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="••••••••" required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-sage hover:text-primary">
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="••••••••" required />
+                  </div>
+                </div>
+                <button type="submit" disabled={loading}
+                  className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  {loading ? 'Creating account...' : 'Create Personal Account'}
                 </button>
-              </div>
-            </div>
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300"></div></div>
+                  <div className="relative flex justify-center text-sm"><span className="px-4 bg-cream text-sage">Or continue with</span></div>
+                </div>
+                <button type="button" onClick={handleGoogleSignIn}
+                  className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  Sign up with Google
+                </button>
+              </>
+            )}
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-            </div>
+            {/* ====== CORPORATE ACCOUNT - STEP 1: Business Info ====== */}
+            {accountType === 'corporate' && step === 1 && (
+              <>
+                <div>
+                  <label htmlFor="businessName" className="block text-sm font-medium text-gray-700 mb-2">Business Name *</label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="businessName" name="businessName" type="text" value={formData.businessName} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Your business name" required />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="businessEmail" className="block text-sm font-medium text-gray-700 mb-2">Business Email *</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="businessEmail" name="businessEmail" type="email" value={formData.businessEmail} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="info@company.com" required />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="businessPhone" className="block text-sm font-medium text-gray-700 mb-2">Business Phone *</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="businessPhone" name="businessPhone" type="tel" value={formData.businessPhone} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="+234-XXX-XXXX" required />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-2">Industry *</label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <select id="industry" name="industry" value={formData.industry} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white" required>
+                      <option value="">Select Industry</option>
+                      <option value="Technology">Technology</option>
+                      <option value="FinTech">FinTech</option>
+                      <option value="AgriTech">AgriTech</option>
+                      <option value="E-commerce">E-commerce</option>
+                      <option value="Healthcare">Healthcare</option>
+                      <option value="Energy">Energy</option>
+                      <option value="Manufacturing">Manufacturing</option>
+                      <option value="Real Estate">Real Estate</option>
+                      <option value="Education">Education</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="businessAddress" className="block text-sm font-medium text-gray-700 mb-2">Business Address</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 text-sage" size={20} />
+                    <input id="businessAddress" name="businessAddress" type="text" value={formData.businessAddress} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="123 Business St, Lagos" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="taxId" className="block text-sm font-medium text-gray-700 mb-2">Tax ID Number</label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="taxId" name="taxId" type="text" value={formData.taxId} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Tax ID" />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700 mb-2">Reg. Number</label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="registrationNumber" name="registrationNumber" type="text" value={formData.registrationNumber} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="RC-XXXXXXX" />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">Country</label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="country" name="country" type="text" value={formData.country} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Nigeria" />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="businessWebsite" className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="businessWebsite" name="businessWebsite" type="url" value={formData.businessWebsite} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="https://" />
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onClick={() => { if (canProceedToStep2()) { setStep(2); setError(''); } else { setError('Please fill in all required fields'); } }}
+                  className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors">
+                  Continue to Account Setup
+                </button>
+              </>
+            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creating account...' : 'Create Account'}
-            </button>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-cream text-sage">Or continue with</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Sign up with Google
-            </button>
+            {/* ====== CORPORATE ACCOUNT - STEP 2: Credentials ====== */}
+            {accountType === 'corporate' && step === 2 && (
+              <>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Building2 className="text-primary" size={20} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-primary">{formData.businessName}</p>
+                      <p className="text-sm text-sage">{formData.industry} • {formData.businessEmail}</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-sage">Now set up the primary account administrator credentials.</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">Admin First Name *</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="firstName" name="firstName" type="text" value={formData.firstName} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="John" required />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">Admin Last Name *</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                      <input id="lastName" name="lastName" type="text" value={formData.lastName} onChange={handleChange}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Doe" required />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleChange}
+                      className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="••••••••" required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-sage hover:text-primary">
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-sage" size={20} />
+                    <input id="confirmPassword" name="confirmPassword" type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="••••••••" required />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setStep(1)}
+                    className="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                    Back
+                  </button>
+                  <button type="submit" disabled={loading}
+                    className="flex-1 bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    {loading ? 'Creating...' : 'Open Corporate Account'}
+                  </button>
+                </div>
+              </>
+            )}
           </form>
 
           <p className="mt-8 text-center text-sm text-gray-600">
@@ -306,5 +470,17 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    }>
+      <SignupForm />
+    </Suspense>
   );
 }

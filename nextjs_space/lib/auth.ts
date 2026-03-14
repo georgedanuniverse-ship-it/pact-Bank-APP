@@ -50,6 +50,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email ?? '',
           name: user.name ?? '',
           image: user.image ?? null,
+          accountType: user.accountType ?? 'personal',
+          businessName: user.businessName ?? '',
         };
       },
     }),
@@ -58,12 +60,20 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.accountType = (user as any).accountType ?? 'personal';
+        token.businessName = (user as any).businessName ?? '';
       }
       return token;
     },
     async session({ session, token }) {
       if (token?.id) {
         session.user.id = token.id as string;
+      }
+      if (token?.accountType) {
+        (session.user as any).accountType = token.accountType as string;
+      }
+      if (token?.businessName) {
+        (session.user as any).businessName = token.businessName as string;
       }
       return session;
     },

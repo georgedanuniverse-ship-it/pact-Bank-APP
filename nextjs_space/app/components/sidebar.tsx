@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -12,6 +13,10 @@ import {
   User,
   Shield,
   X,
+  Building2,
+  Briefcase,
+  Globe,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +25,7 @@ interface SidebarProps {
   onClose: () => void;
 }
 
-const navigation = [
+const personalNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Transactions', href: '/transactions', icon: Receipt },
   { name: 'Transfers', href: '/transfers', icon: ArrowLeftRight },
@@ -31,8 +36,25 @@ const navigation = [
   { name: 'Security', href: '/security', icon: Shield },
 ];
 
+const corporateNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Transactions', href: '/transactions', icon: Receipt },
+  { name: 'Transfers', href: '/transfers', icon: ArrowLeftRight },
+  { name: 'Bill Payments', href: '/bill-payments', icon: CreditCard },
+  { name: 'Beneficiaries', href: '/beneficiaries', icon: Users },
+  { name: 'Payroll', href: '/payroll', icon: Briefcase },
+  { name: 'Trade Finance', href: '/trade-finance', icon: Globe },
+  { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'Statements', href: '/statements', icon: FileText },
+  { name: 'Profile', href: '/profile', icon: Building2 },
+  { name: 'Security', href: '/security', icon: Shield },
+];
+
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession() || {};
+  const isCorporate = session?.user?.accountType === 'corporate';
+  const navigation = isCorporate ? corporateNavigation : personalNavigation;
 
   return (
     <>
@@ -56,6 +78,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div>
             <h2 className="text-2xl font-heading font-bold">PACT</h2>
             <div className="w-12 h-0.5 bg-accent mt-1"></div>
+            {isCorporate && (
+              <span className="text-xs text-accent mt-1 block font-medium">Corporate Banking</span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -100,7 +125,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             © 2026 Pact Bank
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            Africa's Global Rise
+            Africa&apos;s Global Rise
           </p>
         </div>
       </aside>

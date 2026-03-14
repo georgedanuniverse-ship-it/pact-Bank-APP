@@ -12,6 +12,11 @@ import {
   TrendingUp,
   Eye,
   EyeOff,
+  Building2,
+  Briefcase,
+  Globe,
+  BarChart3,
+  Users,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import SpendingChart from '@/app/components/charts/spending-chart';
@@ -23,6 +28,8 @@ export default function DashboardPage() {
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hideBalances, setHideBalances] = useState(false);
+
+  const isCorporate = session?.user?.accountType === 'corporate';
 
   useEffect(() => {
     fetchDashboardData();
@@ -67,17 +74,29 @@ export default function DashboardPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Welcome Section */}
       <div>
-        <h1 className="text-3xl font-heading font-bold text-primary mb-2">
-          Welcome back, {session?.user?.name?.split(' ')?.[0] ?? 'User'}!
-        </h1>
-        <p className="text-sage">Here's your financial overview</p>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-heading font-bold text-primary">
+            {isCorporate ? 'Business Overview' : `Welcome back, ${session?.user?.name?.split(' ')?.[0] ?? 'User'}!`}
+          </h1>
+          {isCorporate && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-accent/20 text-accent border border-accent/30">
+              <Building2 size={12} />
+              Corporate
+            </span>
+          )}
+        </div>
+        <p className="text-sage">
+          {isCorporate
+            ? `${session?.user?.businessName || 'Your business'} — Financial overview and operations`
+            : "Here's your financial overview"}
+        </p>
       </div>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-sage">Total Balance</p>
+            <p className="text-sm text-sage">Total Balance (USD)</p>
             <button
               onClick={() => setHideBalances(!hideBalances)}
               className="p-1 hover:bg-gray-100 rounded transition-colors"
@@ -93,7 +112,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-2">
             <ArrowUpRight className="text-green-600" size={20} />
-            <p className="text-sm text-sage">Total Credits</p>
+            <p className="text-sm text-sage">{isCorporate ? 'Inflows' : 'Total Credits'}</p>
           </div>
           <p className="text-2xl font-heading font-bold text-green-600">
             {recentTransactions?.filter((t) => t?.type === 'credit')?.length ?? 0}
@@ -103,7 +122,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-2 mb-2">
             <ArrowDownLeft className="text-red-600" size={20} />
-            <p className="text-sm text-sage">Total Debits</p>
+            <p className="text-sm text-sage">{isCorporate ? 'Outflows' : 'Total Debits'}</p>
           </div>
           <p className="text-2xl font-heading font-bold text-red-600">
             {recentTransactions?.filter((t) => t?.type === 'debit')?.length ?? 0}
@@ -124,7 +143,7 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
         <h2 className="text-lg font-heading font-semibold text-primary mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={`grid gap-3 ${isCorporate ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-6' : 'grid-cols-2 md:grid-cols-4'}`}>
           <Link
             href="/transfers"
             className="flex flex-col items-center gap-2 p-4 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors group"
@@ -153,12 +172,65 @@ export default function DashboardPage() {
             <ArrowUpRight size={24} className="group-hover:scale-110 transition-transform" />
             <span className="text-sm font-medium">View All</span>
           </Link>
+          {isCorporate && (
+            <>
+              <Link
+                href="/payroll"
+                className="flex flex-col items-center gap-2 p-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors group"
+              >
+                <Briefcase size={24} className="group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-medium">Payroll</span>
+              </Link>
+              <Link
+                href="/trade-finance"
+                className="flex flex-col items-center gap-2 p-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors group"
+              >
+                <Globe size={24} className="group-hover:scale-110 transition-transform" />
+                <span className="text-sm font-medium">Trade Finance</span>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
+      {/* Corporate: Business Summary Cards */}
+      {isCorporate && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="text-primary" size={20} />
+              <h3 className="font-heading font-semibold text-primary">Payroll</h3>
+            </div>
+            <p className="text-2xl font-heading font-bold text-primary mb-1">{formatCurrency(48200, 'USD')}</p>
+            <p className="text-sm text-sage">Monthly payroll · 6 employees</p>
+            <Link href="/payroll" className="text-xs text-accent hover:text-accent-dark font-medium mt-2 block">Manage Payroll →</Link>
+          </div>
+          <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <Globe className="text-primary" size={20} />
+              <h3 className="font-heading font-semibold text-primary">Trade Finance</h3>
+            </div>
+            <p className="text-2xl font-heading font-bold text-primary mb-1">11</p>
+            <p className="text-sm text-sage">Active instruments · $1.74M volume</p>
+            <Link href="/trade-finance" className="text-xs text-accent hover:text-accent-dark font-medium mt-2 block">View Details →</Link>
+          </div>
+          <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <BarChart3 className="text-primary" size={20} />
+              <h3 className="font-heading font-semibold text-primary">Reports</h3>
+            </div>
+            <p className="text-2xl font-heading font-bold text-primary mb-1">{formatCurrency(277000, 'USD')}</p>
+            <p className="text-sm text-sage">Q1 2026 net income</p>
+            <Link href="/reports" className="text-xs text-accent hover:text-accent-dark font-medium mt-2 block">View Reports →</Link>
+          </div>
+        </div>
+      )}
+
       {/* Accounts Overview */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-heading font-semibold text-primary mb-4">Your Accounts</h2>
+        <h2 className="text-lg font-heading font-semibold text-primary mb-4">
+          {isCorporate ? 'Business Accounts' : 'Your Accounts'}
+        </h2>
         <div className="space-y-3">
           {accounts?.length === 0 ? (
             <p className="text-sage text-center py-4">No accounts found</p>
@@ -187,11 +259,15 @@ export default function DashboardPage() {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-heading font-semibold text-primary mb-4">Spending by Category</h2>
+          <h2 className="text-lg font-heading font-semibold text-primary mb-4">
+            {isCorporate ? 'Expense Breakdown' : 'Spending by Category'}
+          </h2>
           <SpendingChart transactions={recentTransactions} />
         </div>
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <h2 className="text-lg font-heading font-semibold text-primary mb-4">Balance Trend</h2>
+          <h2 className="text-lg font-heading font-semibold text-primary mb-4">
+            {isCorporate ? 'Cash Flow Trend' : 'Balance Trend'}
+          </h2>
           <BalanceChart transactions={recentTransactions} initialBalance={totalBalance} />
         </div>
       </div>

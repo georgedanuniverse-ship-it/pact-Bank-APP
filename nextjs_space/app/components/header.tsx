@@ -1,7 +1,7 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { Menu, Bell, User, LogOut, Settings } from 'lucide-react';
+import { Menu, Bell, User, LogOut, Settings, Building2 } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -12,6 +12,7 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const { data: session } = useSession() || {};
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const isCorporate = session?.user?.accountType === 'corporate';
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/login' });
@@ -29,9 +30,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
           >
             <Menu className="text-primary" size={24} />
           </button>
-          <h1 className="text-2xl font-heading font-bold text-primary">
-            PACT
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-heading font-bold text-primary">
+              PACT
+            </h1>
+            {isCorporate && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent border border-accent/30">
+                <Building2 size={12} />
+                Corporate
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Right side */}
@@ -49,12 +58,25 @@ export default function Header({ onMenuClick }: HeaderProps) {
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <User className="text-white" size={16} />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                isCorporate ? 'bg-accent' : 'bg-primary'
+              }`}>
+                {isCorporate ? (
+                  <Building2 className="text-primary" size={16} />
+                ) : (
+                  <User className="text-white" size={16} />
+                )}
               </div>
-              <span className="hidden md:block text-sm font-medium text-gray-700">
-                {session?.user?.name || 'User'}
-              </span>
+              <div className="hidden md:block text-left">
+                <span className="text-sm font-medium text-gray-700 block leading-tight">
+                  {session?.user?.name || 'User'}
+                </span>
+                {isCorporate && (
+                  <span className="text-xs text-sage leading-tight block">
+                    {session?.user?.businessName || 'Business'}
+                  </span>
+                )}
+              </div>
             </button>
 
             {showUserMenu && (

@@ -408,6 +408,121 @@ async function main() {
   }
 
   console.log('✅ Created security settings');
+
+  // ===== CORPORATE TEST ACCOUNT =====
+  const corporateHashedPassword = await bcrypt.hash('corporate123', 10);
+  const corporateUser = await prisma.user.upsert({
+    where: { email: 'corporate@pact-bank.com' },
+    update: { password: corporateHashedPassword },
+    create: {
+      email: 'corporate@pact-bank.com',
+      password: corporateHashedPassword,
+      firstName: 'Ngozi',
+      lastName: 'Adeyemi',
+      phone: '+234-802-555-0100',
+      name: 'Ngozi Adeyemi',
+      role: 'user',
+      accountType: 'corporate',
+      businessName: 'AfriTech Solutions Ltd',
+      businessPhone: '+234-1-555-0200',
+      businessEmail: 'info@afritech-solutions.com',
+      businessAddress: '15 Victoria Island, Lagos, Nigeria',
+      businessWebsite: 'https://afritech-solutions.com',
+      taxId: 'NG-TIN-12345678',
+      registrationNumber: 'RC-987654',
+      country: 'Nigeria',
+      industry: 'Technology',
+    },
+  });
+
+  // Corporate Business Current Account - USD
+  const corpUSDAccount = await prisma.bankAccount.upsert({
+    where: { accountNumber: '3005000001' },
+    update: {},
+    create: {
+      userId: corporateUser.id,
+      accountNumber: '3005000001',
+      accountType: 'Business Current',
+      balance: 875000.00,
+      currency: 'USD',
+      status: 'active',
+    },
+  });
+
+  // Corporate Business Current Account - NGN
+  const corpNGNAccount = await prisma.bankAccount.upsert({
+    where: { accountNumber: '3005000002' },
+    update: {},
+    create: {
+      userId: corporateUser.id,
+      accountNumber: '3005000002',
+      accountType: 'Business Current',
+      balance: 42500000.00,
+      currency: 'NGN',
+      status: 'active',
+    },
+  });
+
+  // Corporate Fixed Deposit
+  await prisma.bankAccount.upsert({
+    where: { accountNumber: '3005000003' },
+    update: {},
+    create: {
+      userId: corporateUser.id,
+      accountNumber: '3005000003',
+      accountType: 'Fixed Deposit',
+      balance: 250000.00,
+      currency: 'USD',
+      status: 'active',
+    },
+  });
+
+  // Corporate transactions (USD account)
+  const CORP_TRANSACTIONS = [
+    { desc: 'Monthly Payroll - March 2026', type: 'debit', category: 'payroll', amount: 48200 },
+    { desc: 'Client Payment - Tech Solutions Project', type: 'credit', category: 'revenue', amount: 125000 },
+    { desc: 'Office Rent - Victoria Island', type: 'debit', category: 'rent', amount: 15000 },
+    { desc: 'AWS Cloud Infrastructure', type: 'debit', category: 'technology', amount: 8500 },
+    { desc: 'Government Contract Payment', type: 'credit', category: 'revenue', amount: 250000 },
+    { desc: 'Employee Travel Expenses', type: 'debit', category: 'travel', amount: 4200 },
+    { desc: 'Software License Renewal', type: 'debit', category: 'technology', amount: 12000 },
+    { desc: 'Partnership Revenue - FinTech Co.', type: 'credit', category: 'revenue', amount: 75000 },
+    { desc: 'Insurance Premium', type: 'debit', category: 'insurance', amount: 6800 },
+    { desc: 'Export Payment - Accra Office', type: 'credit', category: 'revenue', amount: 95000 },
+  ];
+
+  for (let i = 0; i < CORP_TRANSACTIONS.length; i++) {
+    const txn = CORP_TRANSACTIONS[i];
+    await prisma.transaction.create({
+      data: {
+        accountId: corpUSDAccount.id,
+        type: txn.type,
+        amount: txn.amount,
+        currency: 'USD',
+        description: txn.desc,
+        category: txn.category,
+        recipientName: txn.type === 'debit' ? 'Various' : undefined,
+        referenceNumber: generateReferenceNumber(),
+        status: 'completed',
+        createdAt: getRandomDate(60),
+      },
+    });
+  }
+
+  // Corporate security settings
+  await prisma.securitySettings.upsert({
+    where: { userId: corporateUser.id },
+    update: {},
+    create: {
+      userId: corporateUser.id,
+      twoFactorEnabled: true,
+      sessionTimeout: 15,
+      loginNotifications: true,
+      transactionAlerts: true,
+    },
+  });
+
+  console.log('✅ Created corporate test account:', corporateUser.email, '/ corporate123');
   console.log('🎉 Seed completed successfully!');
 }
 
