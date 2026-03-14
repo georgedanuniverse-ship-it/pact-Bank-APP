@@ -66,10 +66,11 @@ function getRandomDate(daysBack: number): Date {
 async function main() {
   console.log('🌱 Starting seed...');
 
-  // Hash password for all users
+  // Hash passwords for users
   const hashedPassword = await bcrypt.hash('johndoe123', 10);
+  const adminHashedPassword = await bcrypt.hash('admin123', 10);
 
-  // Create default admin test user
+  // Create default admin test user (system)
   const adminUser = await prisma.user.upsert({
     where: { email: 'john@doe.com' },
     update: {},
@@ -84,7 +85,22 @@ async function main() {
     },
   });
 
-  console.log('✅ Admin user created:', adminUser.email);
+  // Create Pact Bank branded admin account
+  const pactAdmin = await prisma.user.upsert({
+    where: { email: 'admin@pact-bank.com' },
+    update: { password: adminHashedPassword },
+    create: {
+      email: 'admin@pact-bank.com',
+      password: adminHashedPassword,
+      firstName: 'Admin',
+      lastName: 'Pact',
+      phone: '+234-800-PACT-BNK',
+      name: 'Pact Admin',
+      role: 'admin',
+    },
+  });
+
+  console.log('✅ Admin users created:', adminUser.email, pactAdmin.email);
 
   // Create additional sample users
   const users = [];
@@ -145,6 +161,67 @@ async function main() {
       balance: 50000.00,
       currency: 'USD',
       status: 'active',
+    },
+  });
+
+  // Create bank accounts for pactAdmin user
+  const pactSavings = await prisma.bankAccount.upsert({
+    where: { accountNumber: '3002000001' },
+    update: {},
+    create: {
+      userId: pactAdmin.id,
+      accountNumber: '3002000001',
+      accountType: 'Savings',
+      balance: 87250.50,
+      currency: 'USD',
+      status: 'active',
+    },
+  });
+
+  const pactCurrent = await prisma.bankAccount.upsert({
+    where: { accountNumber: '3002000002' },
+    update: {},
+    create: {
+      userId: pactAdmin.id,
+      accountNumber: '3002000002',
+      accountType: 'Current',
+      balance: 2100000.00,
+      currency: 'NGN',
+      status: 'active',
+    },
+  });
+
+  // Create transactions for pactAdmin savings
+  for (let i = 0; i < 15; i++) {
+    const txn = TRANSACTION_DESCRIPTIONS[i % TRANSACTION_DESCRIPTIONS.length];
+    const amount = Math.floor(Math.random() * 30000) + 200;
+    await prisma.transaction.create({
+      data: {
+        accountId: pactSavings.id,
+        type: txn.type,
+        amount,
+        currency: 'USD',
+        description: txn.desc,
+        category: txn.category,
+        recipientName: txn.type === 'debit' ? AFRICAN_NAMES[Math.floor(Math.random() * AFRICAN_NAMES.length)].firstName + ' ' + AFRICAN_NAMES[Math.floor(Math.random() * AFRICAN_NAMES.length)].lastName : undefined,
+        recipientAccount: txn.type === 'debit' ? generateAccountNumber() : undefined,
+        referenceNumber: generateReferenceNumber(),
+        status: 'completed',
+        createdAt: getRandomDate(60),
+      },
+    });
+  }
+
+  // Create security settings for pactAdmin
+  await prisma.securitySettings.upsert({
+    where: { userId: pactAdmin.id },
+    update: {},
+    create: {
+      userId: pactAdmin.id,
+      twoFactorEnabled: false,
+      sessionTimeout: 30,
+      loginNotifications: true,
+      transactionAlerts: true,
     },
   });
 
