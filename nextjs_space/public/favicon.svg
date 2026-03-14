@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <circle cx="128" cy="128" r="120" fill="#0a3d2e"/>
+  <circle cx="128" cy="128" r="100" fill="none" stroke="#d4af37" stroke-width="3"/>
+  <path d="M128 60 L148 90 L180 90 L155 110 L165 142 L128 120 L91 142 L101 110 L76 90 L108 90 Z" fill="#d4af37"/>
+  <text x="128" y="195" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#d4af37" text-anchor="middle">PACT</text>
+</svg>
