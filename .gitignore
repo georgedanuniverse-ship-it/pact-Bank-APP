@@ -18,3 +18,20 @@ out
 .deploy
 .logs
 *.tsbuildinfo
+
+# Video/audio assets (generated, not source code)
+video_assets/
+audio/
+segments/
+*.mp4
+*.wav
+concat_list.txt
+create_video.sh
+generate_voiceover.py
+video_silent.mp4
+
+# Environment secrets
+nextjs_space/.env
+
+# System files
+.abacus.donotdelete
